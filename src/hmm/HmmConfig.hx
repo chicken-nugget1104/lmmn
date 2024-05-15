@@ -94,6 +94,22 @@ class HmmConfigs {
     };
   }
 
+  public static function isLibraryInstalled(lib:LibraryConfig):Bool {
+    var libPath = Path.join([getLocalHaxelibRepoPath(), lib.name]);
+    return sys.FileSystem.exists(libPath) && sys.FileSystem.isDirectory(libPath);
+  }
+
+  public static function addDependencyIfNeeded(lib:LibraryConfig, silent = false):VNel<String, HmmConfig> {
+    if (isLibraryInstalled(lib)) {
+      if (!silent) {
+        Log.info('Library "${LibraryConfigs.getName(lib)}" is already installed in .haxelib folder.');
+      }
+      return readHmmJson();
+    } else {
+      return addDependency(lib, silent);
+    }
+  }
+
   public static function addDependency(lib:LibraryConfig, silent = false):VNel<String, HmmConfig> {
     if (!silent) {
       Log.info('Adding library: "${LibraryConfigs.getName(lib)}" to: ${getHmmJsonPath()}:');
@@ -117,7 +133,7 @@ class HmmConfigs {
   }
 
   public static function addDependencyOrThrow(lib:LibraryConfig, silent = false):HmmConfig {
-    return switch addDependency(lib, silent).either {
+    return switch addDependencyIfNeeded(lib, silent).either {
       case Left(errs): throw new thx.Error(errs.toArray().join(", "));
       case Right(hmmConfig): hmmConfig;
     };
